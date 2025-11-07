@@ -42,7 +42,6 @@ exit;
 
 Password đã được lưu trong file `.env`:
 ```env
-DB_PASSWORD=1104205  # Your actual password
 ```
 
 **Option 2: Cập nhật config.json (Not recommended for production)**
@@ -165,9 +164,3 @@ CREATE DATABASE football_management;
 11. **revenue_weekly** - Weekly revenue
 12. **revenue_monthly** - Monthly revenue
 
-Tất cả các bảng đã có đầy đủ:
-- Primary keys
-- Foreign keys với ON DELETE và ON UPDATE constraints
-- Indexes cho performance
-- Default values
-- Timestamps
