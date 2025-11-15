@@ -12,4 +12,7 @@ router.get("/", getAllFields);
 // GET /api/manager/fields/:id → Xem chi tiết sân
 router.get("/:id", getFieldById);
 
+// PUT /api/manager/fields/:id - Cập nhật thông tin sân (Giá, vị trí, trạng thái)
+router.put("/:id", updateField);
+
 export default router;
