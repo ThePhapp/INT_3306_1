@@ -1,12 +1,16 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import Navbar from '../../components/Navbar.jsx'
 import Footer from '../../components/Footer.jsx'
+import ApiClient, { authAPI } from '../../services/api'
 import './FieldDetailPage.css'
 
 export default function FieldDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [field, setField] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   
   const [selectedDate, setSelectedDate] = useState('')
   const [selectedTime, setSelectedTime] = useState(null)
@@ -18,70 +22,46 @@ export default function FieldDetailPage() {
   })
   const [activeTab, setActiveTab] = useState('info')
 
-  // Demo data
-  const field = {
-    id: 1,
-    name: 'Sân bóng Trường Đại học Sư phạm Hà Nội',
-    address: 'Số 136, Xuân Thủy, Phường Dịch Vọng Hậu, Quận Cầu Giấy, Hà Nội',
-    rating: 4.5,
-    totalReviews: 123,
-    openTime: '5h-23h30',
-    totalFields: 5,
-    price: '1.200.000đ',
-    priceRange: '1.200.000đ',
-    facilities: [
-      { icon: '🚗', name: 'Bãi đỗ xe oto' },
-      { icon: '🏍️', name: 'Bãi đỗ xe máy' },
-      { icon: '☕', name: 'Căng tin' },
-      { icon: '🚻', name: 'Trà đá' },
-      { icon: '🚿', name: 'Đồ ăn' },
-      { icon: '💧', name: 'Nước uống' },
-      { icon: '👕', name: 'Xem 5 sân' }
-    ],
-    images: [
-      '/images/fields/placeholder.svg',
-      '/images/fields/placeholder.svg',
-      '/images/fields/placeholder.svg',
-      '/images/fields/placeholder.svg'
-    ],
-    description: `
-      - Số lượng sân: 1 sân 11 người, 4 sân 5
-      - Kích Thước sân: 1 Sân Dài (100m Ngang (65m), 4 Sân Dài (40m Ngang (20m)
-      - Tổng diện tích: 6500m2
-      - Tình trạng kinh doanh: Tốt
-    `
-  }
+  useEffect(() => {
+    const fetchField = async () => {
+      setLoading(true)
+      try {
+        const res = await ApiClient.get(`/user/fields/${id}`)
+        setField(res)
+      } catch (err) {
+        console.error(err)
+        setError('Failed to load field')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchField()
+  }, [id])
 
-  const timeSlots = [
-    { day: 'T7', date: '18/10/2025', times: [
-      { time: '14:00 - 15:30', price: '1200K', available: true },
-      { time: '15:30 - 17:00', price: '1200K', available: true },
-      { time: '17:00 - 18:30', price: '1200K', available: true },
-      { time: '18:30 - 20:00', price: '1200K', available: true },
-      { time: '20:00 - 21:30', price: '1200K', available: true }
-    ]},
-    { day: 'CN', date: '19/10/2025', times: [
-      { time: '14:00 - 15:30', price: '1200K', available: true },
-      { time: '15:30 - 17:00', price: '1200K', available: false },
-      { time: '17:00 - 18:30', price: '1200K', available: true },
-      { time: '18:30 - 20:00', price: '1200K', available: true },
-      { time: '20:00 - 21:30', price: '1200K', available: true }
-    ]},
-    { day: 'T2', date: '20/10/2025', times: [
-      { time: '14:00 - 15:30', price: '1200K', available: true },
-      { time: '15:30 - 17:00', price: '1200K', available: true },
-      { time: '17:00 - 18:30', price: '1200K', available: true },
-      { time: '18:30 - 20:00', price: '1200K', available: true },
-      { time: '20:00 - 21:30', price: '1200K', available: true }
-    ]},
-    { day: 'T3', date: '21/10/2025', times: [
-      { time: '14:00 - 15:30', price: '1200K', available: true },
-      { time: '15:30 - 17:00', price: '1200K', available: true },
-      { time: '17:00 - 18:30', price: '1200K', available: true },
-      { time: '18:30 - 20:00', price: '1200K', available: true },
-      { time: '20:00 - 21:30', price: '1200K', available: true }
-    ]}
-  ]
+  // Convert backend slots to calendar format grouped by day
+  const timeSlots = field?.slots ? (() => {
+    const grouped = {}
+    field.slots.forEach(slot => {
+      const start = new Date(slot.start_time)
+      const dateKey = start.toLocaleDateString('vi-VN')
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = {
+          day: ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][start.getDay()],
+          date: start.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+          times: []
+        }
+      }
+      const end = new Date(slot.end_time)
+      grouped[dateKey].times.push({
+        time: `${start.getHours()}:${String(start.getMinutes()).padStart(2,'0')} - ${end.getHours()}:${String(end.getMinutes()).padStart(2,'0')}`,
+        price: field.price || '1200K',
+        available: slot.available !== false,
+        start_time: slot.start_time,
+        end_time: slot.end_time
+      })
+    })
+    return Object.values(grouped).slice(0, 4)
+  })() : []
 
   const reviews = [
     { id: 1, user: 'Nguyễn Văn A', rating: 5, date: '15/10/2025', comment: 'Sân đẹp, cỏ tốt, giá cả hợp lý' },
@@ -95,23 +75,47 @@ export default function FieldDetailPage() {
     }
   }
 
-  const handleBookingSubmit = (e) => {
+  const handleBookingSubmit = async (e) => {
     e.preventDefault()
+    
+
+    if (!authAPI.isAuthenticated()) {
+      if (window.confirm('Bạn cần đăng nhập để đặt sân. Chuyển đến trang đăng nhập?')) {
+        navigate('/user/login')
+      }
+      return
+    }
     
     if (!selectedTime) {
       alert('Vui lòng chọn khung giờ đặt sân')
       return
     }
 
-    console.log('Booking:', {
-      field: field.name,
-      date: timeSlots[selectedTime.dayIndex].date,
-      time: selectedTime.timeSlot.time,
-      ...bookingForm
-    })
+    if (!bookingForm.name || !bookingForm.phone) {
+      alert('Vui lòng điền đầy đủ họ tên và số điện thoại')
+      return
+    }
 
-    alert('Đặt sân thành công! Chúng tôi sẽ liên hệ với bạn sớm.')
-    navigate('/user')
+    const currentUser = authAPI.getCurrentUser()
+
+    const bookingData = {
+      customer_id: currentUser?.person_id || 1,
+      field_id: Number(field.field_id),
+      field_name: field.field_name,
+      location: field.location,
+      start_time: selectedTime.timeSlot.start_time,
+      end_time: selectedTime.timeSlot.end_time,
+      price: 1200000,
+      customer_name: bookingForm.name,
+      customer_email: bookingForm.email,
+      customer_phone: bookingForm.phone,
+      note: bookingForm.note
+    }
+    
+    // Lưu vào localStorage để trang thanh toán sử dụng
+    localStorage.setItem('pendingBooking', JSON.stringify(bookingData))
+    
+    navigate('/user/booking')
   }
 
   const handleFormChange = (e) => {
@@ -121,6 +125,9 @@ export default function FieldDetailPage() {
     })
   }
 
+  if (loading) return <div className="field-detail-page"><Navbar /><div className="container">Loading…</div><Footer /></div>
+  if (error) return <div className="field-detail-page"><Navbar /><div className="container">{error}</div><Footer /></div>
+
   return (
     <div className="field-detail-page">
       <Navbar />
@@ -129,15 +136,15 @@ export default function FieldDetailPage() {
         {/* Header */}
         <div className="field-header">
           <div className="field-header-left">
-            <h1>{field.name}</h1>
+            <h1>{field.field_name}</h1>
             <p className="field-address">
-              📍 {field.address}
+              📍 {field.location}
             </p>
           </div>
           <div className="field-header-right">
             <div className="field-rating">
-              <span className="rating-score">Đánh giá: {field.rating}</span>
-              <span className="rating-stars">⭐ ({field.totalReviews} Đánh giá)</span>
+              <span className="rating-score">Đánh giá: 4.5</span>
+              <span className="rating-stars">⭐ (123 Đánh giá)</span>
             </div>
             <div className="field-actions">
               <button className="action-btn">🔗</button>
@@ -150,13 +157,13 @@ export default function FieldDetailPage() {
         {/* Images Gallery */}
         <div className="field-gallery">
           <div className="gallery-main">
-            <img src={field.images[0]} alt={field.name} />
+            <img src={field.image || '/images/fields/placeholder.svg'} alt={field.field_name} />
           </div>
           <div className="gallery-grid">
-            {field.images.slice(1).map((img, index) => (
-              <div key={index} className="gallery-item">
-                <img src={img} alt={`${field.name} ${index + 2}`} />
-                {index === 2 && <div className="gallery-more">Xem 5 sân</div>}
+            {[1,2,3].map((idx) => (
+              <div key={idx} className="gallery-item">
+                <img src={field.image || '/images/fields/placeholder.svg'} alt={`${field.field_name} ${idx + 1}`} />
+                {idx === 2 && <div className="gallery-more">Xem thêm</div>}
               </div>
             ))}
           </div>
@@ -219,16 +226,6 @@ export default function FieldDetailPage() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="time">Lịch giờ</label>
-                <select id="time" required>
-                  <option value="">--:-- --</option>
-                  <option value="morning">Sáng (6h - 12h)</option>
-                  <option value="afternoon">Chiều (12h - 18h)</option>
-                  <option value="evening">Tối (18h - 23h)</option>
-                </select>
-              </div>
-
-              <div className="form-group">
                 <label htmlFor="note">Ghi chú</label>
                 <textarea
                   id="note"
@@ -249,7 +246,7 @@ export default function FieldDetailPage() {
             <div className="time-slots-section">
               <div className="time-slots-header">
                 <button className="nav-btn">←</button>
-                <span>18/10/2025 - 24/10/2025</span>
+                <span>Lịch đặt sân</span>
                 <button className="nav-btn">→</button>
                 <div className="time-filters">
                   <button className="filter-btn">Khung sáng</button>
@@ -293,19 +290,19 @@ export default function FieldDetailPage() {
               <h3>Thông tin sân</h3>
               <div className="info-row">
                 <span>Giờ mở cửa:</span>
-                <strong>{field.openTime}</strong>
+                <strong>5h-23h30</strong>
               </div>
               <div className="info-row">
                 <span>Số sân thi đấu:</span>
-                <strong>{field.totalFields} Sân</strong>
+                <strong>5 Sân</strong>
               </div>
               <div className="info-row">
                 <span>Giá sân:</span>
-                <strong>{field.price}</strong>
+                <strong>{field.price || 'Liên hệ'}</strong>
               </div>
               <div className="info-row">
-                <span>Giá sân giờ vàng:</span>
-                <strong>{field.priceRange}</strong>
+                <span>Trạng thái:</span>
+                <strong>{field.status}</strong>
               </div>
             </div>
 
@@ -313,10 +310,10 @@ export default function FieldDetailPage() {
             <div className="facilities-card">
               <h3>Dịch vụ tiện ích</h3>
               <div className="facilities-grid">
-                {field.facilities.map((facility, index) => (
+                {(field.facilities || ['Bãi đỗ xe', 'Căng tin', 'Nước uống', 'Phòng thay đồ']).map((facility, index) => (
                   <div key={index} className="facility-item">
-                    <span className="facility-icon">{facility.icon}</span>
-                    <span className="facility-name">{facility.name}</span>
+                    <span className="facility-icon">✓</span>
+                    <span className="facility-name">{facility}</span>
                   </div>
                 ))}
               </div>
@@ -337,15 +334,36 @@ export default function FieldDetailPage() {
                 >
                   Đánh giá
                 </button>
+                <button 
+                  className={`tab-btn ${activeTab === 'policy' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('policy')}
+                >
+                  Chính sách
+                </button>
+                <button 
+                  className={`tab-btn ${activeTab === 'contact' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('contact')}
+                >
+                  Liên hệ
+                </button>
               </div>
 
               <div className="tabs-content">
                 {activeTab === 'info' && (
                   <div className="info-content">
-                    <h4>Thông tin chung về Sân bóng Trường Đại học Sư phạm Hà Nội</h4>
-                    <pre>{field.description}</pre>
-                    <p>Lưu ý nhập sân: Có nhắc trước sân bóng SPA-5P146002</p>
-                    <p>Sân được vệ nhân viên liên hệ bảng trước khi đến bởng ông địa điểm thường đặc như học Sư-Phạm Hà Nội</p>
+                    <h4>Thông tin chung về {field.field_name}</h4>
+                    <p><strong>Địa chỉ:</strong> {field.location}</p>
+                    <p><strong>Giờ mở cửa:</strong> 5:00 - 23:30 hàng ngày</p>
+                    <p><strong>Số sân:</strong> 5 sân thi đấu chất lượng cao</p>
+                    <p><strong>Loại sân:</strong> Sân cỏ nhân tạo thế hệ mới</p>
+                    <br />
+                    <h4>Mô tả</h4>
+                    <p>Sân bóng {field.field_name} là một trong những sân bóng chất lượng cao nhất khu vực. 
+                    Với cơ sở vật chất hiện đại, cỏ nhân tạo thế hệ mới, hệ thống chiếu sáng chuyên nghiệp 
+                    và đội ngũ nhân viên phục vụ tận tình, chúng tôi cam kết mang đến cho bạn những trải nghiệm 
+                    tuyệt vời nhất.</p>
+                    <p>Sân được trang bị đầy đủ tiện nghi: phòng thay đồ rộng rãi, khu vực nghỉ ngơi, 
+                    căng tin với đầy đủ đồ uống và thức ăn nhẹ, bãi đỗ xe rộng rãi và an toàn.</p>
                   </div>
                 )}
 
@@ -353,37 +371,50 @@ export default function FieldDetailPage() {
                   <div className="reviews-content">
                     <div className="reviews-summary">
                       <div className="rating-overview">
-                        <div className="rating-big">5.0</div>
+                        <div className="rating-big">4.8</div>
                         <div className="rating-stars-display">⭐⭐⭐⭐⭐</div>
+                        <div className="rating-count">123 đánh giá</div>
                       </div>
                       <div className="rating-breakdown">
-                        {[5, 4, 3, 2, 1].map(star => (
-                          <div key={star} className="rating-bar">
-                            <span>{star} ⭐</span>
+                        {[
+                          { star: 5, percent: 85 },
+                          { star: 4, percent: 10 },
+                          { star: 3, percent: 3 },
+                          { star: 2, percent: 1 },
+                          { star: 1, percent: 1 }
+                        ].map(item => (
+                          <div key={item.star} className="rating-bar">
+                            <span>{item.star} ⭐</span>
                             <div className="bar">
-                              <div className="bar-fill" style={{width: star === 5 ? '100%' : '0%'}}></div>
+                              <div className="bar-fill" style={{width: `${item.percent}%`}}></div>
                             </div>
-                            <span>{star === 5 ? '100%' : '0%'}</span>
+                            <span>{item.percent}%</span>
                           </div>
                         ))}
                       </div>
-                      <button className="btn-write-review">Đánh giá và nhận xét</button>
                     </div>
 
                     <div className="reviews-list">
-                      <h4>Gửi nhận xét của bạn</h4>
-                      <p>Đánh giá của bạn về sản phẩm này:</p>
+                      <h4>Gửi đánh giá của bạn</h4>
+                      <p>Chia sẻ trải nghiệm của bạn về sân bóng này:</p>
                       <div className="review-form">
                         <div className="star-rating-input">
                           {[1, 2, 3, 4, 5].map(star => (
-                            <span key={star} className="star">⭐</span>
+                            <button 
+                              key={star} 
+                              type="button"
+                              className="star-btn"
+                              title={`${star} sao`}
+                            >
+                              ⭐
+                            </button>
                           ))}
                         </div>
                         <textarea 
-                          placeholder="Nhận xét của bạn về sản phẩm này"
+                          placeholder="Nhận xét của bạn về sân bóng này (dịch vụ, chất lượng sân, tiện nghi...)"
                           rows="4"
                         />
-                        <button className="btn-submit-review">Gửi đánh giá</button>
+                        <button type="button" className="btn-submit-review">Gửi đánh giá</button>
                       </div>
                     </div>
 
@@ -393,17 +424,163 @@ export default function FieldDetailPage() {
                         {reviews.map(review => (
                           <div key={review.id} className="review-item">
                             <div className="review-header">
-                              <strong>{review.user}</strong>
+                              <div className="review-user">
+                                <div className="user-avatar">{review.user.charAt(0)}</div>
+                                <div>
+                                  <strong>{review.user}</strong>
+                                  <div className="review-date">{review.date}</div>
+                                </div>
+                              </div>
                               <div className="review-rating">
                                 {'⭐'.repeat(review.rating)}
                               </div>
                             </div>
-                            <div className="review-date">{review.date}</div>
                             <div className="review-comment">{review.comment}</div>
                           </div>
                         ))}
                       </div>
                     )}
+                  </div>
+                )}
+
+                {activeTab === 'policy' && (
+                  <div className="policy-content">
+                    <h4>Chính sách đặt sân và sử dụng dịch vụ</h4>
+                    
+                    <div className="policy-section">
+                      <h5>1. Chính sách đặt sân</h5>
+                      <ul>
+                        <li>Khách hàng có thể đặt sân trước tối thiểu 2 giờ và tối đa 7 ngày.</li>
+                        <li>Mỗi khung giờ đặt sân là 2 tiếng.</li>
+                        <li>Sau khi đặt sân, vui lòng chờ quản lý xác nhận trong vòng 30 phút.</li>
+                        <li>Nếu không nhận được xác nhận, vui lòng liên hệ hotline: 0123-456-789</li>
+                      </ul>
+                    </div>
+
+                    <div className="policy-section">
+                      <h5>2. Chính sách thanh toán</h5>
+                      <ul>
+                        <li>Thanh toán đặt cọc 50% giá trị đặt sân qua chuyển khoản hoặc ví điện tử.</li>
+                        <li>Thanh toán số tiền còn lại khi đến sân.</li>
+                        <li>Chấp nhận thanh toán: Tiền mặt, chuyển khoản, ví điện tử (Momo, ZaloPay, VNPay).</li>
+                        <li>Hóa đơn VAT được xuất theo yêu cầu.</li>
+                      </ul>
+                    </div>
+
+                    <div className="policy-section">
+                      <h5>3. Chính sách hủy/đổi lịch</h5>
+                      <ul>
+                        <li><strong>Hủy trước 24h:</strong> Hoàn lại 100% tiền đặt cọc.</li>
+                        <li><strong>Hủy trước 12h:</strong> Hoàn lại 50% tiền đặt cọc.</li>
+                        <li><strong>Hủy trong vòng 12h:</strong> Không hoàn tiền.</li>
+                        <li><strong>Đổi lịch:</strong> Được đổi lịch miễn phí 1 lần (trước 12h).</li>
+                        <li>Trường hợp bất khả kháng (mưa to, thiên tai): Hoàn 100% hoặc đổi lịch linh hoạt.</li>
+                      </ul>
+                    </div>
+
+                    <div className="policy-section">
+                      <h5>4. Quy định sử dụng sân</h5>
+                      <ul>
+                        <li>Vào sân đúng giờ, trễ quá 15 phút sẽ mất 30 phút của khung giờ đặt.</li>
+                        <li>Không mang đồ ăn, thức uống có cồn vào khu vực sân thi đấu.</li>
+                        <li>Giữ gìn vệ sinh chung, không xả rác bừa bãi.</li>
+                        <li>Sử dụng giày phù hợp cho sân cỏ nhân tạo (không dùng giày đinh sắt).</li>
+                        <li>Bồi thường thiết bị nếu có hư hỏng do lỗi người sử dụng.</li>
+                      </ul>
+                    </div>
+
+                    <div className="policy-section">
+                      <h5>5. Chính sách bảo mật thông tin</h5>
+                      <ul>
+                        <li>Thông tin khách hàng được bảo mật tuyệt đối.</li>
+                        <li>Chỉ sử dụng thông tin để xác nhận đặt sân và liên hệ khi cần thiết.</li>
+                        <li>Không chia sẻ thông tin cho bên thứ ba khi chưa có sự đồng ý.</li>
+                      </ul>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'contact' && (
+                  <div className="contact-content">
+                    <h4>Thông tin liên hệ</h4>
+                    
+                    <div className="contact-info">
+                      <div className="contact-item">
+                        <div className="contact-icon">📍</div>
+                        <div>
+                          <strong>Địa chỉ</strong>
+                          <p>{field.location}</p>
+                        </div>
+                      </div>
+
+                      <div className="contact-item">
+                        <div className="contact-icon">📞</div>
+                        <div>
+                          <strong>Hotline</strong>
+                          <p>0123-456-789 (Hỗ trợ 24/7)</p>
+                        </div>
+                      </div>
+
+                      <div className="contact-item">
+                        <div className="contact-icon">📧</div>
+                        <div>
+                          <strong>Email</strong>
+                          <p>contact@{field.field_name?.toLowerCase().replace(/\s+/g, '')}.com</p>
+                        </div>
+                      </div>
+
+                      <div className="contact-item">
+                        <div className="contact-icon">🕒</div>
+                        <div>
+                          <strong>Giờ làm việc</strong>
+                          <p>5:00 - 23:30 (Hàng ngày)</p>
+                        </div>
+                      </div>
+
+                      <div className="contact-item">
+                        <div className="contact-icon">💬</div>
+                        <div>
+                          <strong>Mạng xã hội</strong>
+                          <p>
+                            Facebook: /sanbong{field.field_name?.toLowerCase().replace(/\s+/g, '')}<br />
+                            Zalo: 0123-456-789
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="contact-form-section">
+                      <h5>Gửi tin nhắn cho chúng tôi</h5>
+                      <form className="contact-form" onSubmit={(e) => e.preventDefault()}>
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label>Họ và tên *</label>
+                            <input type="text" placeholder="Nhập họ và tên" required />
+                          </div>
+                          <div className="form-group">
+                            <label>Số điện thoại *</label>
+                            <input type="tel" placeholder="Nhập số điện thoại" required />
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label>Email</label>
+                          <input type="email" placeholder="Nhập email (không bắt buộc)" />
+                        </div>
+                        <div className="form-group">
+                          <label>Nội dung *</label>
+                          <textarea rows="4" placeholder="Nhập nội dung cần liên hệ..." required></textarea>
+                        </div>
+                        <button type="submit" className="btn-send-message">Gửi tin nhắn</button>
+                      </form>
+                    </div>
+
+                    <div className="map-section">
+                      <h5>Bản đồ</h5>
+                      <div className="map-placeholder">
+                        <p>🗺️ Google Maps sẽ hiển thị tại đây</p>
+                        <small>{field.location}</small>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
