@@ -1,5 +1,5 @@
 import { DataTypes } from 'sequelize';
-import { sequelize } from '../config/db.js';
+import sequelize from '../config/database.js';
 
 const Field = sequelize.define('Field', {
   field_id: {
@@ -10,18 +10,11 @@ const Field = sequelize.define('Field', {
   },
   manager_id: {
     type: DataTypes.INTEGER,
-    allowNull: true,
-    references: {
-      model: 'person',
-      key: 'person_id'
-    }
+    allowNull: true
   },
   field_name: {
     type: DataTypes.STRING(50),
-    allowNull: false,
-    validate: {
-      notEmpty: true
-    }
+    allowNull: false
   },
   location: {
     type: DataTypes.STRING(100),
@@ -30,18 +23,11 @@ const Field = sequelize.define('Field', {
   status: {
     type: DataTypes.STRING(45),
     allowNull: true,
-    defaultValue: 'active',
-    validate: {
-      isIn: [['active', 'inactive', 'maintenance']]
-    }
+    defaultValue: 'active'
   }
 }, {
   tableName: 'fields',
-  timestamps: false,
-  indexes: [
-    { fields: ['manager_id'] },
-    { fields: ['status'] }
-  ]
+  timestamps: false
 });
 
 export default Field;

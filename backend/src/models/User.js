@@ -1,7 +1,8 @@
 import { DataTypes } from 'sequelize';
-import { sequelize } from '../config/db.js';
+import bcrypt from 'bcryptjs';
+import sequelize from '../config/database.js';
 
-const User = sequelize.define('Person', {
+const Person = sequelize.define('Person', {
   person_id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -12,7 +13,13 @@ const User = sequelize.define('Person', {
     type: DataTypes.STRING(50),
     allowNull: false,
     validate: {
-      notEmpty: true
+      notEmpty: {
+        msg: 'Tên không được để trống'
+      },
+      len: {
+        args: [2, 50],
+        msg: 'Tên phải từ 2-50 ký tự'
+      }
     }
   },
   birthday: {
@@ -23,7 +30,10 @@ const User = sequelize.define('Person', {
     type: DataTypes.STRING(10),
     allowNull: true,
     validate: {
-      isIn: [['male', 'female', 'other']]
+      isIn: {
+        args: [['male', 'female', 'other', null]],
+        msg: 'Giới tính không hợp lệ'
+      }
     }
   },
   address: {
@@ -35,14 +45,19 @@ const User = sequelize.define('Person', {
     allowNull: true,
     unique: true,
     validate: {
-      isEmail: true
+      isEmail: {
+        msg: 'Email không hợp lệ'
+      }
     }
   },
   phone: {
     type: DataTypes.STRING(10),
     allowNull: true,
     validate: {
-      is: /^[0-9]{10}$/
+      is: {
+        args: /^[0-9]{10}$/,
+        msg: 'Số điện thoại phải có 10 chữ số'
+      }
     }
   },
   username: {
@@ -50,19 +65,37 @@ const User = sequelize.define('Person', {
     allowNull: false,
     unique: true,
     validate: {
-      notEmpty: true
+      notEmpty: {
+        msg: 'Username không được để trống'
+      },
+      len: {
+        args: [3, 45],
+        msg: 'Username phải từ 3-45 ký tự'
+      }
     }
   },
   password: {
-    type: DataTypes.STRING(45),
-    allowNull: false
+    type: DataTypes.STRING(255), // Changed from 45 to 255 for hashed password
+    allowNull: false,
+    validate: {
+      notEmpty: {
+        msg: 'Mật khẩu không được để trống'
+      },
+      len: {
+        args: [6, 255],
+        msg: 'Mật khẩu phải có ít nhất 6 ký tự'
+      }
+    }
   },
   role: {
     type: DataTypes.STRING(45),
     allowNull: true,
     defaultValue: 'user',
     validate: {
-      isIn: [['user', 'manager', 'admin']]
+      isIn: {
+        args: [['user', 'staff', 'manager', 'admin']],
+        msg: 'Role không hợp lệ'
+      }
     }
   },
   status: {
@@ -70,16 +103,51 @@ const User = sequelize.define('Person', {
     allowNull: true,
     defaultValue: 'active',
     validate: {
-      isIn: [['active', 'inactive']]
+      isIn: {
+        args: [['active', 'inactive', 'banned']],
+        msg: 'Status không hợp lệ'
+      }
+    }
+  },
+  fieldId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'fields',
+      key: 'field_id'
     }
   }
 }, {
   tableName: 'person',
   timestamps: false,
-  indexes: [
-    { fields: ['email'] },
-    { fields: ['username'] }
-  ]
+  hooks: {
+    // Hash password before creating user
+    beforeCreate: async (person) => {
+      if (person.password) {
+        const salt = await bcrypt.genSalt(10);
+        person.password = await bcrypt.hash(person.password, salt);
+      }
+    },
+    // Hash password before updating if it's changed
+    beforeUpdate: async (person) => {
+      if (person.changed('password')) {
+        const salt = await bcrypt.genSalt(10);
+        person.password = await bcrypt.hash(person.password, salt);
+      }
+    }
+  }
 });
 
-export default User;
+// Instance method to check password
+Person.prototype.comparePassword = async function(candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Instance method to hide password in JSON responses
+Person.prototype.toJSON = function() {
+  const values = { ...this.get() };
+  delete values.password;
+  return values;
+};
+
+export default Person;

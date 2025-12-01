@@ -2,6 +2,7 @@ import express from "express";
 import {
   getAllFields,
   getFieldById,
+  updateField,
 } from "../../controllers/manager/fieldController.js";
 
 const router = express.Router();
@@ -13,6 +14,6 @@ router.get("/", getAllFields);
 router.get("/:id", getFieldById);
 
 // PUT /api/manager/fields/:id - Cập nhật thông tin sân (Giá, vị trí, trạng thái)
-// TODO: Thêm controller updateField khi sẵn sàng
+router.put("/:id", updateField);
 
 export default router;

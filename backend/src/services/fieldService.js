@@ -1,14 +1,14 @@
 // =============================
 // SERVICE: Xử lý nghiệp vụ liên quan đến sân bóng
 // =============================
-import db from "../config/db.js";
+import sequelize from "../config/database.js";
 
 /**
  * Lấy toàn bộ danh sách sân bóng
  * @returns {Promise<Array>} danh sách tất cả sân trong bảng "fields"
  */
 export const getAllFieldsService = async () => {
-  const [rows] = await db.query("SELECT * FROM fields");
+  const [rows] = await sequelize.query("SELECT * FROM fields");
   return rows;
 };
 
@@ -19,9 +19,9 @@ export const getAllFieldsService = async () => {
  */
 export const getFieldByIdService = async (id) => {
   try {
-    const [rows] = await db.query("SELECT * FROM fields WHERE field_id = ?", [
-      id,
-    ]);
+    const [rows] = await sequelize.query("SELECT * FROM fields WHERE field_id = ?", {
+      replacements: [id]
+    });
 
     console.log("Kết quả truy vấn:", rows); // <— thêm log này
 

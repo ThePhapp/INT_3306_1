@@ -1,5 +1,5 @@
 import { DataTypes } from 'sequelize';
-import { sequelize } from '../config/db.js';
+import sequelize from '../config/database.js';
 
 const Review = sequelize.define('Review', {
   review_id: {
@@ -42,9 +42,18 @@ const Review = sequelize.define('Review', {
   },
   comment: {
     type: DataTypes.TEXT,
+    allowNull: false
+  },
+  images: {
+    type: DataTypes.JSON,
     allowNull: true
   },
   created_at: {
+    type: DataTypes.DATE,
+    allowNull: false,
+    defaultValue: DataTypes.NOW
+  },
+  updated_at: {
     type: DataTypes.DATE,
     allowNull: false,
     defaultValue: DataTypes.NOW

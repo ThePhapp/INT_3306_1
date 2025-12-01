@@ -1,58 +1,34 @@
-import { Router } from "express";
-import db from "../../config/db.js";
-import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
+import { Router } from 'express';
+import {
+  register,
+  login,
+  getMe,
+  refreshToken,
+  logout
+} from '../../controllers/user/authController.js';
+import {
+  forgotPassword,
+  verifyOTP,
+  resetPassword,
+  resendOTP
+} from '../../controllers/user/passwordResetController.js';
+import { protect } from '../../middleware/auth.js';
 
 const router = Router();
 
-// Health check
-router.get("/", (req, res) => {
-  res.json({ message: "Auth route working" });
-});
+// Public routes
+router.post('/register', register);
+router.post('/login', login);
+router.post('/refresh', refreshToken);
 
-// Login with username/email + password
-router.post("/login", async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    if (!username || !password) {
-      return res.status(400).json({ message: "Missing username or password" });
-    }
+// Password reset routes (public)
+router.post('/forgot-password', forgotPassword);
+router.post('/verify-otp', verifyOTP);
+router.post('/reset-password', resetPassword);
+router.post('/resend-otp', resendOTP);
 
-    const [rows] = await db.query(
-      "SELECT person_id, person_name, username, password, role, email FROM person WHERE username = ? OR email = ? LIMIT 1",
-      [username, username]
-    );
-
-    if (!rows || rows.length === 0) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    const user = rows[0];
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) {
-      return res.status(401).json({ message: "Invalid credentials" });
-    }
-
-    const token = jwt.sign(
-      { userId: user.person_id, role: user.role },
-      process.env.JWT_SECRET || "secret",
-      { expiresIn: "1d" }
-    );
-
-    return res.json({
-      token,
-      user: {
-        person_id: user.person_id,
-        person_name: user.person_name,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-      },
-    });
-  } catch (e) {
-    console.error(e);
-    return res.status(500).json({ message: "Server error" });
-  }
-});
+// Protected routes
+router.get('/me', protect, getMe);
+router.post('/logout', protect, logout);
 
 export default router;

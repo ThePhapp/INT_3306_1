@@ -1,7 +1,9 @@
 import app from "./app.js";
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📝 API Documentation: http://localhost:${PORT}`);
+  console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
 });
