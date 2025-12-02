@@ -312,7 +312,7 @@
 /* Fields Grid */
 .fields-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
   gap: 25px;
   margin-bottom: 40px;
 }
@@ -559,6 +559,83 @@
 }
 
 /* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin-top: 48px;
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.pagination-btn {
+  padding: 10px 20px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  color: #374151;
+  font-size: 14px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: #1a472a;
+  color: #1a472a;
+  background: #f0fdf4;
+  transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+.pagination-numbers {
+  display: flex;
+  gap: 6px;
+}
+
+.pagination-number {
+  width: 40px;
+  height: 40px;
+  border: 2px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pagination-number:hover {
+  border-color: #1a472a;
+  color: #1a472a;
+  background: #f0fdf4;
+}
+
+.pagination-number.active {
+  background: linear-gradient(135deg, #1a472a, #2d5a3d);
+  color: white;
+  border-color: #1a472a;
+  box-shadow: 0 4px 12px rgba(26, 71, 42, 0.3);
+}
+
+.pagination-info {
+  margin-left: 12px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+}
+
 .pagination {
   display: flex;
   justify-content: center;
@@ -601,9 +678,9 @@
 }
 
 /* Responsive Design */
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .fields-grid {
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -628,6 +705,10 @@
   .category-item {
     flex: 1;
     min-width: 150px;
+  }
+
+  .fields-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .fields-hero h1 {
@@ -675,6 +756,28 @@
 
   .sort-select {
     flex: 1;
+  }
+
+  .pagination-container {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pagination-btn {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .pagination-number {
+    width: 36px;
+    height: 36px;
+  }
+
+  .pagination-info {
+    width: 100%;
+    text-align: center;
+    margin-left: 0;
+    margin-top: 8px;
   }
 }
 

@@ -69,7 +69,8 @@ export default function BookingHistoryPage() {
     const date = new Date(dateString)
     return date.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
+      hour12: false
     })
   }
 

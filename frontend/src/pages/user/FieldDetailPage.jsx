@@ -21,6 +21,8 @@ export default function FieldDetailPage() {
     note: ''
   })
   const [activeTab, setActiveTab] = useState('info')
+  const [formErrors, setFormErrors] = useState({})
+  const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     const fetchField = async () => {
@@ -38,29 +40,46 @@ export default function FieldDetailPage() {
     fetchField()
   }, [id])
 
-  // Convert backend slots to calendar format grouped by day
+  // Convert backend slots to calendar format - 7 days x 4 shifts
   const timeSlots = field?.slots ? (() => {
     const grouped = {}
+    const shiftLabels = ['Ca sáng', 'Ca trưa', 'Ca chiều', 'Ca tối']
+    
     field.slots.forEach(slot => {
       const start = new Date(slot.start_time)
       const dateKey = start.toLocaleDateString('vi-VN')
+      const hour = start.getHours()
+      
+      // Determine which shift (0-3)
+      let shiftIndex = 0
+      if (hour >= 6 && hour < 9) shiftIndex = 0
+      else if (hour >= 9 && hour < 12) shiftIndex = 1
+      else if (hour >= 14 && hour < 17) shiftIndex = 2
+      else if (hour >= 18 && hour < 21) shiftIndex = 3
+      
       if (!grouped[dateKey]) {
         grouped[dateKey] = {
           day: ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'][start.getDay()],
-          date: start.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
-          times: []
+          date: start.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' }),
+          shifts: [null, null, null, null] // 4 shifts per day
         }
       }
+      
       const end = new Date(slot.end_time)
-      grouped[dateKey].times.push({
-        time: `${start.getHours()}:${String(start.getMinutes()).padStart(2,'0')} - ${end.getHours()}:${String(end.getMinutes()).padStart(2,'0')}`,
-        price: field.price || '1200K',
+      const startTime = start.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
+      const endTime = end.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', hour12: false })
+      
+      grouped[dateKey].shifts[shiftIndex] = {
+        label: slot.shift_label || shiftLabels[shiftIndex],
+        time: `${startTime} - ${endTime}`,
+        price: '300K/ca',
         available: slot.available !== false,
         start_time: slot.start_time,
         end_time: slot.end_time
-      })
+      }
     })
-    return Object.values(grouped).slice(0, 4)
+    
+    return Object.values(grouped).slice(0, 7) // 7 days
   })() : []
 
   const reviews = [
@@ -69,15 +88,16 @@ export default function FieldDetailPage() {
     { id: 3, user: 'Lê Văn C', rating: 5, date: '10/10/2025', comment: 'Sân chất lượng, vị trí thuận tiện' }
   ]
 
-  const handleTimeSelect = (dayIndex, timeSlot) => {
-    if (timeSlot.available) {
-      setSelectedTime({ dayIndex, timeSlot })
+  const handleTimeSelect = (dayIndex, shiftIndex) => {
+    const shift = timeSlots[dayIndex]?.shifts[shiftIndex]
+    if (shift && shift.available) {
+      setSelectedTime({ dayIndex, shiftIndex, timeSlot: shift })
     }
   }
 
   const handleBookingSubmit = async (e) => {
     e.preventDefault()
-    
+    setFormErrors({})
 
     if (!authAPI.isAuthenticated()) {
       if (window.confirm('Bạn cần đăng nhập để đặt sân. Chuyển đến trang đăng nhập?')) {
@@ -86,15 +106,27 @@ export default function FieldDetailPage() {
       return
     }
     
+    // Validate form
+    const errors = {}
     if (!selectedTime) {
-      alert('Vui lòng chọn khung giờ đặt sân')
+      errors.time = 'Vui lòng chọn khung giờ đặt sân'
+    }
+    if (!bookingForm.name || bookingForm.name.trim().length < 3) {
+      errors.name = 'Họ tên phải có ít nhất 3 ký tự'
+    }
+    if (!bookingForm.phone || !/^(0|\+84)[0-9]{9,10}$/.test(bookingForm.phone.replace(/\s/g, ''))) {
+      errors.phone = 'Số điện thoại không hợp lệ'
+    }
+    if (bookingForm.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bookingForm.email)) {
+      errors.email = 'Email không hợp lệ'
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFormErrors(errors)
       return
     }
 
-    if (!bookingForm.name || !bookingForm.phone) {
-      alert('Vui lòng điền đầy đủ họ tên và số điện thoại')
-      return
-    }
+    setSubmitting(true)
 
     const currentUser = authAPI.getCurrentUser()
 
@@ -115,6 +147,7 @@ export default function FieldDetailPage() {
     // Lưu vào localStorage để trang thanh toán sử dụng
     localStorage.setItem('pendingBooking', JSON.stringify(bookingData))
     
+    setSubmitting(false)
     navigate('/user/booking')
   }
 
@@ -175,8 +208,10 @@ export default function FieldDetailPage() {
             <h2>Đặt sân theo yêu cầu</h2>
             
             <form onSubmit={handleBookingSubmit} className="booking-detail-form">
+              {formErrors.time && <div className="form-error-banner">{formErrors.time}</div>}
+              
               <div className="form-group">
-                <label htmlFor="name">Họ và tên</label>
+                <label htmlFor="name">Họ và tên *</label>
                 <input
                   id="name"
                   type="text"
@@ -184,8 +219,9 @@ export default function FieldDetailPage() {
                   value={bookingForm.name}
                   onChange={handleFormChange}
                   placeholder="Nhập họ và tên"
-                  required
+                  className={formErrors.name ? 'error' : ''}
                 />
+                {formErrors.name && <span className="field-error">{formErrors.name}</span>}
               </div>
 
               <div className="form-group">
@@ -196,13 +232,14 @@ export default function FieldDetailPage() {
                   name="email"
                   value={bookingForm.email}
                   onChange={handleFormChange}
-                  placeholder="Nhập email"
-                  required
+                  placeholder="Nhập email (không bắt buộc)"
+                  className={formErrors.email ? 'error' : ''}
                 />
+                {formErrors.email && <span className="field-error">{formErrors.email}</span>}
               </div>
 
               <div className="form-group">
-                <label htmlFor="phone">Số điện thoại</label>
+                <label htmlFor="phone">Số điện thoại *</label>
                 <input
                   id="phone"
                   type="tel"
@@ -210,8 +247,9 @@ export default function FieldDetailPage() {
                   value={bookingForm.phone}
                   onChange={handleFormChange}
                   placeholder="Nhập số điện thoại"
-                  required
+                  className={formErrors.phone ? 'error' : ''}
                 />
+                {formErrors.phone && <span className="field-error">{formErrors.phone}</span>}
               </div>
 
               <div className="form-group">
@@ -221,7 +259,6 @@ export default function FieldDetailPage() {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  required
                 />
               </div>
 
@@ -237,21 +274,23 @@ export default function FieldDetailPage() {
                 />
               </div>
 
-              <button type="submit" className="btn-submit-booking">
-                Gửi yêu cầu →
+              <button type="submit" className="btn-submit-booking" disabled={submitting}>
+                {submitting ? 'Đang xử lý...' : 'Gửi yêu cầu →'}
               </button>
+              
+              {selectedTime && (
+                <div className="selected-time-info">
+                  <strong>⏰ Đã chọn:</strong> {selectedTime.timeSlot.label} - {selectedTime.timeSlot.time}
+                </div>
+              )}
             </form>
 
-            {/* Time Slots Calendar */}
+            {/* Time Slots Calendar - 4 Fixed Shifts */}
             <div className="time-slots-section">
               <div className="time-slots-header">
                 <button className="nav-btn">←</button>
-                <span>Lịch đặt sân</span>
+                <span>Lịch đặt sân - 4 ca cố định</span>
                 <button className="nav-btn">→</button>
-                <div className="time-filters">
-                  <button className="filter-btn">Khung sáng</button>
-                  <button className="filter-btn active">Khung chiều</button>
-                </div>
               </div>
 
               <div className="time-slots-grid">
@@ -262,20 +301,32 @@ export default function FieldDetailPage() {
                       <div className="day-date">{day.date}</div>
                     </div>
                     <div className="time-list">
-                      {day.times.map((slot, slotIndex) => (
-                        <button
-                          key={slotIndex}
-                          className={`time-slot ${!slot.available ? 'booked' : ''} ${
-                            selectedTime?.dayIndex === dayIndex && 
-                            selectedTime?.timeSlot.time === slot.time ? 'selected' : ''
-                          }`}
-                          onClick={() => handleTimeSelect(dayIndex, slot)}
-                          disabled={!slot.available}
-                        >
-                          <div className="time-range">{slot.time}</div>
-                          <div className="time-price">{slot.price}</div>
-                        </button>
-                      ))}
+                      {day.shifts.map((shift, shiftIndex) => {
+                        if (!shift) return (
+                          <div key={shiftIndex} className="time-slot empty">
+                            <div className="time-range">-</div>
+                          </div>
+                        )
+                        
+                        return (
+                          <button
+                            key={shiftIndex}
+                            className={`time-slot ${!shift.available ? 'booked' : ''} ${
+                              selectedTime?.dayIndex === dayIndex && 
+                              selectedTime?.shiftIndex === shiftIndex ? 'selected' : ''
+                            }`}
+                            onClick={() => handleTimeSelect(dayIndex, shiftIndex)}
+                            disabled={!shift.available}
+                            title={!shift.available ? 'Khung giờ này đã được đặt' : `${shift.label} - Click để chọn`}
+                          >
+                            <div className="shift-label">{shift.label}</div>
+                            <div className="time-range">{shift.time}</div>
+                            <div className="time-price">
+                              {shift.available ? shift.price : '🔒 Đã đặt'}
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
                 ))}

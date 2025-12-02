@@ -56,17 +56,65 @@ export const getField = async (req, res) => {
 
     const now = new Date();
     const slots = [];
+    
+    // Fixed time shifts - 4 shifts per day
+    const timeShifts = [
+      { start: 6, end: 9, label: 'Ca sáng' },      // 6:00 - 9:00
+      { start: 9, end: 12, label: 'Ca trưa' },     // 9:00 - 12:00
+      { start: 14, end: 17, label: 'Ca chiều' },   // 14:00 - 17:00
+      { start: 18, end: 21, label: 'Ca tối' }      // 18:00 - 21:00
+    ];
+    
+    // Generate time slots for next 7 days
     for (let d = 0; d < 7; d++) {
       const day = new Date(now);
       day.setDate(now.getDate() + d);
-      for (let h = 6; h < 22; h += 2) {
+      day.setHours(0, 0, 0, 0);
+      
+      for (const shift of timeShifts) {
+        // Create local time for Vietnam (ignore timezone conversion)
         const start = new Date(day);
-        start.setHours(h, 0, 0, 0);
+        start.setHours(shift.start, 0, 0, 0);
+        
         const end = new Date(day);
-        end.setHours(h + 2, 0, 0, 0);
-        slots.push({ start_time: start.toISOString(), end_time: end.toISOString(), available: true });
+        end.setHours(shift.end, 0, 0, 0);
+        
+        slots.push({ 
+          start_time: start.toISOString(), 
+          end_time: end.toISOString(), 
+          available: true,
+          shift_label: shift.label
+        });
       }
     }
+
+    // Check which slots are already booked
+    const [bookings] = await sequelize.query(
+      `SELECT start_time, end_time, status 
+       FROM bookings 
+       WHERE field_id = ? 
+       AND status IN ('pending', 'confirmed')
+       AND end_time > NOW()`,
+      { replacements: [id] }
+    );
+
+    // Mark slots as unavailable if booked
+    slots.forEach(slot => {
+      const slotStart = new Date(slot.start_time);
+      const slotEnd = new Date(slot.end_time);
+      
+      const isBooked = bookings.some(booking => {
+        const bookingStart = new Date(booking.start_time);
+        const bookingEnd = new Date(booking.end_time);
+        
+        // Check if there's any overlap
+        return (slotStart < bookingEnd && slotEnd > bookingStart);
+      });
+      
+      if (isBooked) {
+        slot.available = false;
+      }
+    });
 
     const data = {
       field_id: f.field_id,
@@ -109,7 +157,15 @@ export const createBooking = async (req, res) => {
 
     const formatDatetime = (isoString) => {
       const date = new Date(isoString);
-      return date.toISOString().slice(0, 19).replace('T', ' ');
+      // Convert to Vietnam timezone (UTC+7)
+      const vnTime = new Date(date.getTime() + (7 * 60 * 60 * 1000));
+      const year = vnTime.getUTCFullYear();
+      const month = String(vnTime.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(vnTime.getUTCDate()).padStart(2, '0');
+      const hours = String(vnTime.getUTCHours()).padStart(2, '0');
+      const minutes = String(vnTime.getUTCMinutes()).padStart(2, '0');
+      const seconds = String(vnTime.getUTCSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
     };
 
     const mysqlStartTime = formatDatetime(start_time);

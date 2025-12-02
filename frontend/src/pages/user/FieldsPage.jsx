@@ -16,6 +16,9 @@ export default function FieldsPage() {
   const [priceFilter, setPriceFilter] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [sortBy, setSortBy] = useState('popular');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [itemsPerPage] = useState(9);
 
   const categories = [
     { id: 'all', name: 'Tất cả', icon: '⚽', count: fields.length },
@@ -27,8 +30,8 @@ export default function FieldsPage() {
   // Build and run fetch using current filters/search
   const fetchWithQuery = async (opts = {}) => {
     const q = opts.q ?? searchTerm;
-    const limit = opts.limit ?? 50;
-    const page = opts.page ?? 1;
+    const limit = opts.limit ?? itemsPerPage;
+    const page = opts.page ?? currentPage;
     const params = new URLSearchParams();
     if (q) params.append('q', q);
     params.append('limit', String(limit));
@@ -39,6 +42,16 @@ export default function FieldsPage() {
       const res = await ApiClient.get(`/user/fields?${params.toString()}`);
       const rows = Array.isArray(res) ? res : (res.data || []);
       setFields(rows);
+      
+      // Calculate total pages based on number of fields returned
+      // If we got less than limit, we're on the last page
+      if (rows.length < limit) {
+        setTotalPages(page);
+      } else {
+        // Otherwise, there might be more pages
+        setTotalPages(page + 1);
+      }
+      
       setError(null);
     } catch (err) {
       console.error('Failed to load fields', err);
@@ -49,10 +62,22 @@ export default function FieldsPage() {
   };
 
   useEffect(() => {
-    // initial load
-    fetchWithQuery();
+    // Fetch when page changes
+    fetchWithQuery({ page: currentPage });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [currentPage]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1); // Reset to first page on new search
+    fetchWithQuery({ page: 1 });
+  };
 
   const handleBookNow = (field) => {
     const id = field.field_id || field.id;
@@ -76,7 +101,7 @@ export default function FieldsPage() {
                 placeholder="Tìm kiếm theo tên sân, địa điểm..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter') fetchWithQuery(); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSearch(); }}
               />
             </div>
 
@@ -91,7 +116,7 @@ export default function FieldsPage() {
               <option value="high">Trên 1tr</option>
             </select>
 
-            <button className="search-btn" onClick={() => fetchWithQuery()}>Tìm kiếm</button>
+            <button className="search-btn" onClick={handleSearch}>Tìm kiếm</button>
           </div>
         </div>
       </div>
@@ -105,7 +130,11 @@ export default function FieldsPage() {
                 <button
                   key={category.id}
                   className={`category-item ${selectedCategory === category.id ? 'active' : ''}`}
-                  onClick={() => { setSelectedCategory(category.id); fetchWithQuery(); }}
+                  onClick={() => { 
+                    setSelectedCategory(category.id); 
+                    setCurrentPage(1);
+                    fetchWithQuery({ page: 1 }); 
+                  }}
                 >
                   <span className="category-icon">{category.icon}</span>
                   <span className="category-name">{category.name}</span>
@@ -179,6 +208,56 @@ export default function FieldsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!loading && fields.length > 0 && totalPages > 1 && (
+            <div className="pagination-container">
+              <button 
+                className="pagination-btn"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                ← Trước
+              </button>
+              
+              <div className="pagination-numbers">
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      className={`pagination-number ${currentPage === pageNum ? 'active' : ''}`}
+                      onClick={() => handlePageChange(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button 
+                className="pagination-btn"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                Sau →
+              </button>
+
+              <div className="pagination-info">
+                Trang {currentPage} / {totalPages}
+              </div>
             </div>
           )}
         </main>
