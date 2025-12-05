@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Navbar from '../../components/Navbar.jsx'
 import Footer from '../../components/Footer.jsx'
 import './FieldsPage.css'
@@ -9,6 +9,7 @@ import ApiClient from '../../services/api';
 
 export default function FieldsPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [fields, setFields] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,6 +20,33 @@ export default function FieldsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage] = useState(9);
+
+  // Đọc params từ URL khi component mount
+  useEffect(() => {
+    const location = searchParams.get('location');
+    const category = searchParams.get('category');
+    const maxPrice = searchParams.get('maxPrice');
+    
+    if (location) {
+      setSearchTerm(location);
+    }
+    
+    if (category) {
+      setSelectedCategory(category);
+    }
+    
+    if (maxPrice) {
+      // Convert maxPrice to priceFilter
+      const price = parseInt(maxPrice);
+      if (price < 500000) {
+        setPriceFilter('low');
+      } else if (price < 1000000) {
+        setPriceFilter('medium');
+      } else {
+        setPriceFilter('high');
+      }
+    }
+  }, [searchParams]);
 
   const categories = [
     { id: 'all', name: 'Tất cả', icon: '⚽', count: fields.length },
