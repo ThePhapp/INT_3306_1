@@ -2,13 +2,13 @@
   display: flex;
   gap: 1rem;
   background-color: white;
-  padding: 1.8rem;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   max-width: 1000px;
   margin: 0 auto 1rem;
   flex-wrap: wrap;
-  border: 3px solid rgba(251, 191, 36, 0.3);
+  border: 2px solid rgba(251, 191, 36, 0.2);
 }
 
 .search-input,

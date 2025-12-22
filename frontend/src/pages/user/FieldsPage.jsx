@@ -20,6 +20,8 @@ export default function FieldsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [itemsPerPage] = useState(9);
+  const [allFields, setAllFields] = useState([]);
+  const [facilities, setFacilities] = useState([]);
 
   // Đọc params từ URL khi component mount
   useEffect(() => {
@@ -69,6 +71,7 @@ export default function FieldsPage() {
     try {
       const res = await ApiClient.get(`/user/fields?${params.toString()}`);
       const rows = Array.isArray(res) ? res : (res.data || []);
+      setAllFields(rows); // Store all fields
       setFields(rows);
       
       // Calculate total pages based on number of fields returned
@@ -95,6 +98,64 @@ export default function FieldsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentPage]);
 
+  // Apply filters when filter states change
+  useEffect(() => {
+    if (allFields.length === 0) return;
+
+    let filtered = [...allFields];
+
+    // Filter by category
+    if (selectedCategory && selectedCategory !== 'all') {
+      // Note: You may need to adjust this based on your actual data structure
+      // For now, this is a placeholder that doesn't filter
+      // filtered = filtered.filter(field => field.category === selectedCategory);
+    }
+
+    // Filter by price
+    if (priceFilter !== 'all') {
+      const fieldPrice = (field) => {
+        if (!field.price) return 0;
+        const priceStr = String(field.price).replace(/[^\d]/g, '');
+        return parseInt(priceStr) || 0;
+      };
+
+      filtered = filtered.filter(field => {
+        const price = fieldPrice(field);
+        if (priceFilter === 'low') return price < 500000;
+        if (priceFilter === 'medium') return price >= 500000 && price < 1000000;
+        if (priceFilter === 'high') return price >= 1000000;
+        return true;
+      });
+    }
+
+    // Filter by facilities
+    if (facilities.length > 0) {
+      filtered = filtered.filter(field => {
+        const fieldFacilities = field.facilities || [];
+        return facilities.every(fac => fieldFacilities.includes(fac));
+      });
+    }
+
+    // Sort fields
+    if (sortBy === 'rating') {
+      filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortBy === 'price-low') {
+      filtered.sort((a, b) => {
+        const priceA = parseInt(String(a.price || 0).replace(/[^\d]/g, '')) || 0;
+        const priceB = parseInt(String(b.price || 0).replace(/[^\d]/g, '')) || 0;
+        return priceA - priceB;
+      });
+    } else if (sortBy === 'price-high') {
+      filtered.sort((a, b) => {
+        const priceA = parseInt(String(a.price || 0).replace(/[^\d]/g, '')) || 0;
+        const priceB = parseInt(String(b.price || 0).replace(/[^\d]/g, '')) || 0;
+        return priceB - priceA;
+      });
+    }
+
+    setFields(filtered);
+  }, [allFields, selectedCategory, priceFilter, facilities, sortBy]);
+
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
@@ -104,7 +165,18 @@ export default function FieldsPage() {
 
   const handleSearch = () => {
     setCurrentPage(1); // Reset to first page on new search
+    setSelectedCategory('all'); // Reset filters
+    setPriceFilter('all');
+    setFacilities([]);
     fetchWithQuery({ page: 1 });
+  };
+
+  const handleFacilityChange = (facility) => {
+    setFacilities(prev => 
+      prev.includes(facility) 
+        ? prev.filter(f => f !== facility)
+        : [...prev, facility]
+    );
   };
 
   const handleBookNow = (field) => {
@@ -159,9 +231,8 @@ export default function FieldsPage() {
                   key={category.id}
                   className={`category-item ${selectedCategory === category.id ? 'active' : ''}`}
                   onClick={() => { 
-                    setSelectedCategory(category.id); 
+                    setSelectedCategory(category.id === selectedCategory ? 'all' : category.id); 
                     setCurrentPage(1);
-                    fetchWithQuery({ page: 1 }); 
                   }}
                 >
                   <span className="category-icon">{category.icon}</span>
@@ -175,9 +246,30 @@ export default function FieldsPage() {
           <div className="sidebar-section">
             <h3>Tiện ích</h3>
             <div className="facilities-filter">
-              <label className="facility-checkbox"><input type="checkbox" /> <span>Bãi đỗ xe</span></label>
-              <label className="facility-checkbox"><input type="checkbox" /> <span>Căng tin</span></label>
-              <label className="facility-checkbox"><input type="checkbox" /> <span>Phòng thay đồ</span></label>
+              <label className="facility-checkbox">
+                <input 
+                  type="checkbox" 
+                  checked={facilities.includes('Bãi đỗ xe')}
+                  onChange={() => handleFacilityChange('Bãi đỗ xe')}
+                /> 
+                <span>Bãi đỗ xe</span>
+              </label>
+              <label className="facility-checkbox">
+                <input 
+                  type="checkbox"
+                  checked={facilities.includes('Căng tin')}
+                  onChange={() => handleFacilityChange('Căng tin')}
+                /> 
+                <span>Căng tin</span>
+              </label>
+              <label className="facility-checkbox">
+                <input 
+                  type="checkbox"
+                  checked={facilities.includes('Phòng thay đồ')}
+                  onChange={() => handleFacilityChange('Phòng thay đồ')}
+                /> 
+                <span>Phòng thay đồ</span>
+              </label>
             </div>
           </div>
         </aside>
