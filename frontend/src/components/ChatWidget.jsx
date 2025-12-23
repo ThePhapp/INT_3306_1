@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
-import ApiClient from '../services/api';
+import api from '../services/api';
 import './ChatWidget.css';
 
 const ChatWidget = forwardRef((props, ref) => {
@@ -11,8 +11,40 @@ const ChatWidget = forwardRef((props, ref) => {
   const [managers, setManagers] = useState([]);
   const [showManagerList, setShowManagerList] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState(null);
   const messagesEndRef = useRef(null);
-  const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = () => {
+      const storedUser = localStorage.getItem('user');
+      const token = localStorage.getItem('token');
+      
+      if (storedUser && token) {
+        setUser(JSON.parse(storedUser));
+      } else {
+        // User logged out, reset everything
+        setUser(null);
+        setIsOpen(false);
+        setChats([]);
+        setSelectedChat(null);
+        setMessages([]);
+        setManagers([]);
+        setShowManagerList(false);
+      }
+    };
+    
+    checkAuth();
+    
+    // Listen for logout events
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('userUpdated', checkAuth);
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('userUpdated', checkAuth);
+    };
+  }, []);
 
   // Expose methods to parent components
   useImperativeHandle(ref, () => ({
@@ -51,7 +83,7 @@ const ChatWidget = forwardRef((props, ref) => {
 
   const loadChats = async () => {
     try {
-      const response = await ApiClient.get('/chat/list');
+      const response = await api.get('/chat/list');
       if (response.success) {
         setChats(response.data || []);
       }
@@ -62,7 +94,7 @@ const ChatWidget = forwardRef((props, ref) => {
 
   const loadManagers = async () => {
     try {
-      const response = await ApiClient.get('/chat/managers');
+      const response = await api.get('/chat/managers');
       if (response.success) {
         setManagers(response.data || []);
       }
@@ -73,7 +105,7 @@ const ChatWidget = forwardRef((props, ref) => {
 
   const loadMessages = async (chatId) => {
     try {
-      const response = await ApiClient.get(`/chat/${chatId}/messages`);
+      const response = await api.get(`/chat/${chatId}/messages`);
       if (response.success) {
         setMessages(response.data || []);
       }
@@ -85,7 +117,7 @@ const ChatWidget = forwardRef((props, ref) => {
   const createChat = async (managerId) => {
     try {
       setLoading(true);
-      const response = await ApiClient.post('/chat/create', { managerId });
+      const response = await api.post('/chat/create', { managerId });
       if (response.success) {
         setShowManagerList(false);
         await loadChats();
@@ -104,7 +136,7 @@ const ChatWidget = forwardRef((props, ref) => {
     if (!newMessage.trim() || !selectedChat) return;
 
     try {
-      const response = await ApiClient.post(`/chat/${selectedChat.chat_id}/send`, {
+      const response = await api.post(`/chat/${selectedChat.chat_id}/send`, {
         message: newMessage
       });
       if (response.success) {
@@ -135,18 +167,20 @@ const ChatWidget = forwardRef((props, ref) => {
   };
 
   return (
-    <div className="chat-widget">
-      {/* Chat Button */}
-      <button className="chat-button" onClick={() => setIsOpen(!isOpen)}>
-        💬
-        {getTotalUnread() > 0 && (
-          <span className="chat-badge">{getTotalUnread()}</span>
-        )}
-      </button>
+    <>
+      {user && (
+        <div className="chat-widget">
+          {/* Chat Button */}
+          <button className="chat-button" onClick={() => setIsOpen(!isOpen)}>
+            💬
+            {getTotalUnread() > 0 && (
+              <span className="chat-badge">{getTotalUnread()}</span>
+            )}
+          </button>
 
-      {/* Chat Window */}
-      {isOpen && (
-        <div className="chat-window">
+          {/* Chat Window */}
+          {isOpen && (
+            <div className="chat-window">
           <div className="chat-header">
             <h3>💬 Tin nhắn</h3>
             <button className="chat-close" onClick={() => setIsOpen(false)}>✕</button>
@@ -229,11 +263,16 @@ const ChatWidget = forwardRef((props, ref) => {
                     key={msg.message_id}
                     className={`message ${msg.sender_id === user.id ? 'message-sent' : 'message-received'}`}
                   >
+                    {msg.sender_id !== user.id && (
+                      <div className="message-sender-name">
+                        {msg.sender_name}
+                      </div>
+                    )}
                     <div className="message-content">
                       {msg.message_text}
                     </div>
                     <div className="message-time">
-                      {formatTime(msg.created_at)}
+                      {msg.sender_id === user.id ? 'Bạn' : msg.sender_name} • {formatTime(msg.created_at)}
                     </div>
                   </div>
                 ))}
@@ -256,7 +295,9 @@ const ChatWidget = forwardRef((props, ref) => {
           )}
         </div>
       )}
-    </div>
+        </div>
+      )}
+    </>
   );
 });
 

@@ -97,6 +97,7 @@ export const getField = async (req, res) => {
       location: f.location,
       status: f.status,
       rental_price: f.rental_price,
+      manager_id: f.manager_id,
       image: '/images/fields/placeholder.svg',
       price: f.rental_price || 'Liên hệ',
       facilities: ['Bãi đỗ xe', 'Đèn chiếu sáng'],

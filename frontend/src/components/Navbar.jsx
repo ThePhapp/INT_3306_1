@@ -37,7 +37,7 @@ export default function Navbar() {
     }
     setUser(null)
     window.dispatchEvent(new Event('userUpdated'));
-    navigate('/user/login')
+    window.location.href = '/user/login'
   }
 
   return (
