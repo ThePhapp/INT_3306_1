@@ -2,6 +2,21 @@ import React, { useState, useEffect } from "react";
 import { getDashboardStats, getRevenueByDateRange } from "../../api/adminApi";
 import StatsCard from "../../components/admin/StatsCard";
 import { showError } from "../../components/admin/Toast";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+} from "recharts";
 
 function DashboardPage() {
   const [stats, setStats] = useState(null);
@@ -127,7 +142,7 @@ function DashboardPage() {
   return (
     <>
       <header className="page-header">
-        <h1>Dashboard - Tổng Quan</h1>
+        <h1>Dashboard - Tổng Quan Hệ Thống</h1>
       </header>
 
       <div
@@ -172,6 +187,7 @@ function DashboardPage() {
         />
       </div>
 
+      {/* Stats Cards */}
       <div style={{ marginBottom: "32px" }}>
         <h2
           style={{
@@ -206,7 +222,7 @@ function DashboardPage() {
             subtitle={`${stats.pendingBookings || 0} chờ xác nhận`}
           />
           <StatsCard
-            title="Doanh thu (Đã duyệt)"
+            title="Doanh thu"
             value={`${Number(stats.totalRevenue || 0).toLocaleString()}`}
             icon="💰"
             color="yellow"
@@ -215,6 +231,215 @@ function DashboardPage() {
         </div>
       </div>
 
+      {/* Charts Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(2, 1fr)",
+          gap: "24px",
+          marginBottom: "32px",
+        }}
+      >
+        {/* Booking Status Pie Chart */}
+        <div
+          style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3
+            style={{
+              fontSize: "18px",
+              fontWeight: "600",
+              marginBottom: "20px",
+              color: "#111827",
+            }}
+          >
+            📈 Trạng Thái Đặt Sân
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={[
+                  {
+                    name: "Chờ xác nhận",
+                    value: stats.pendingBookings || 0,
+                  },
+                  {
+                    name: "Đã xác nhận",
+                    value: stats.confirmedBookings || 0,
+                  },
+                  {
+                    name: "Hoàn thành",
+                    value: stats.completedBookings || 0,
+                  },
+                  { name: "Đã hủy", value: stats.cancelledBookings || 0 },
+                  { name: "Từ chối", value: stats.rejectedBookings || 0 },
+                ]}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) =>
+                  `${name}: ${(percent * 100).toFixed(0)}%`
+                }
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                <Cell fill="#fbbf24" />
+                <Cell fill="#3b82f6" />
+                <Cell fill="#10b981" />
+                <Cell fill="#ef4444" />
+                <Cell fill="#6b7280" />
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Field Status Pie Chart */}
+        <div
+          style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3
+            style={{
+              fontSize: "18px",
+              fontWeight: "600",
+              marginBottom: "20px",
+              color: "#111827",
+            }}
+          >
+            🏟️ Trạng Thái Sân Bóng
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={[
+                  { name: "Hoạt động", value: stats.activeFields || 0 },
+                  { name: "Bảo trì", value: stats.maintenanceFields || 0 },
+                  {
+                    name: "Không hoạt động",
+                    value: stats.inactiveFields || 0,
+                  },
+                ]}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) =>
+                  `${name}: ${(percent * 100).toFixed(0)}%`
+                }
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                <Cell fill="#10b981" />
+                <Cell fill="#f59e0b" />
+                <Cell fill="#6b7280" />
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* User Distribution Bar Chart */}
+        <div
+          style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3
+            style={{
+              fontSize: "18px",
+              fontWeight: "600",
+              marginBottom: "20px",
+              color: "#111827",
+            }}
+          >
+            👥 Phân Loại Người Dùng
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <BarChart
+              data={[
+                { name: "Users", value: stats.regularUsers || 0 },
+                { name: "Managers", value: stats.totalManagers || 0 },
+                { name: "Admins", value: stats.totalAdmins || 0 },
+              ]}
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
+              <Tooltip />
+              <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]}>
+                <Cell fill="#3b82f6" />
+                <Cell fill="#10b981" />
+                <Cell fill="#ef4444" />
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Revenue Chart */}
+        <div
+          style={{
+            background: "white",
+            padding: "24px",
+            borderRadius: "12px",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+          }}
+        >
+          <h3
+            style={{
+              fontSize: "18px",
+              fontWeight: "600",
+              marginBottom: "20px",
+              color: "#111827",
+            }}
+          >
+            💰 Doanh Thu Theo Thời Gian
+          </h3>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart
+              data={
+                stats.revenue?.bookings?.slice(0, 10).map((booking) => ({
+                  date: new Date(booking.booking_date).toLocaleDateString(
+                    "vi-VN"
+                  ),
+                  revenue: Number(booking.total_price) || 0,
+                })) || []
+              }
+              margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip formatter={(value) => `${value.toLocaleString()} VNĐ`} />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="revenue"
+                stroke="#8b5cf6"
+                strokeWidth={2}
+                dot={{ r: 4 }}
+                activeDot={{ r: 6 }}
+                name="Doanh thu"
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Revenue Summary */}
       <div style={{ marginBottom: "32px" }}>
         <h2
           style={{
@@ -245,421 +470,62 @@ function DashboardPage() {
               style={{
                 textAlign: "center",
                 padding: "20px",
-                background: "#f0f9ff",
-                borderRadius: "8px",
+                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                borderRadius: "12px",
+                color: "white",
               }}
             >
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  marginBottom: "8px",
-                }}
-              >
-                Tổng doanh thu (Đã duyệt)
+              <div style={{ fontSize: "14px", marginBottom: "8px", opacity: 0.9 }}>
+                Tổng doanh thu
               </div>
-              <div
-                style={{
-                  fontSize: "28px",
-                  fontWeight: "700",
-                  color: "#1e40af",
-                }}
-              >
-                {Number(stats.revenue?.totalRevenue || 0).toLocaleString()} VNĐ
+              <div style={{ fontSize: "32px", fontWeight: "700" }}>
+                {Number(stats.revenue?.totalRevenue || 0).toLocaleString()}
+              </div>
+              <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.8 }}>
+                VNĐ
               </div>
             </div>
             <div
               style={{
                 textAlign: "center",
                 padding: "20px",
-                background: "#f0fdf4",
-                borderRadius: "8px",
+                background: "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+                borderRadius: "12px",
+                color: "white",
               }}
             >
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  marginBottom: "8px",
-                }}
-              >
-                Số lượt đặt (Khoảng thời gian)
+              <div style={{ fontSize: "14px", marginBottom: "8px", opacity: 0.9 }}>
+                Số lượt đặt
               </div>
-              <div
-                style={{
-                  fontSize: "28px",
-                  fontWeight: "700",
-                  color: "#065f46",
-                }}
-              >
+              <div style={{ fontSize: "32px", fontWeight: "700" }}>
                 {stats.revenue?.totalBookings || 0}
               </div>
+              <div style={{ fontSize: "12px", marginTop: "4px", opacity: 0.8 }}>
+                Bookings
+              </div>
             </div>
             <div
               style={{
                 textAlign: "center",
                 padding: "20px",
-                background: "#fef3c7",
-                borderRadius: "8px",
+                background: "linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%)",
+                borderRadius: "12px",
+                color: "#92400e",
               }}
             >
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  marginBottom: "8px",
-                }}
-              >
+              <div style={{ fontSize: "14px", marginBottom: "8px" }}>
                 Trung bình/đặt
               </div>
-              <div
-                style={{
-                  fontSize: "28px",
-                  fontWeight: "700",
-                  color: "#92400e",
-                }}
-              >
+              <div style={{ fontSize: "32px", fontWeight: "700" }}>
                 {stats.revenue?.totalBookings > 0 &&
                 stats.revenue?.totalRevenue > 0
                   ? Math.round(
                       Number(stats.revenue.totalRevenue) /
                         Number(stats.revenue.totalBookings)
                     ).toLocaleString()
-                  : 0}{" "}
-                VNĐ
+                  : 0}
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: "32px" }}>
-        <h2
-          style={{
-            fontSize: "20px",
-            fontWeight: "700",
-            marginBottom: "16px",
-            color: "#111827",
-          }}
-        >
-          📈 Trạng Thái Đặt Sân
-        </h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: "16px",
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "12px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              borderLeft: "4px solid #fbbf24",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "14px",
-                color: "#6b7280",
-                marginBottom: "4px",
-              }}
-            >
-              Chờ xác nhận
-            </div>
-            <div
-              style={{ fontSize: "32px", fontWeight: "700", color: "#92400e" }}
-            >
-              {stats.pendingBookings || 0}
-            </div>
-          </div>
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "12px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              borderLeft: "4px solid #3b82f6",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "14px",
-                color: "#6b7280",
-                marginBottom: "4px",
-              }}
-            >
-              Đã xác nhận
-            </div>
-            <div
-              style={{ fontSize: "32px", fontWeight: "700", color: "#1e40af" }}
-            >
-              {stats.confirmedBookings || 0}
-            </div>
-          </div>
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "12px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              borderLeft: "4px solid #10b981",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "14px",
-                color: "#6b7280",
-                marginBottom: "4px",
-              }}
-            >
-              Đã hoàn thành
-            </div>
-            <div
-              style={{ fontSize: "32px", fontWeight: "700", color: "#065f46" }}
-            >
-              {stats.completedBookings || 0}
-            </div>
-          </div>
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "12px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              borderLeft: "4px solid #ef4444",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "14px",
-                color: "#6b7280",
-                marginBottom: "4px",
-              }}
-            >
-              Đã hủy
-            </div>
-            <div
-              style={{ fontSize: "32px", fontWeight: "700", color: "#991b1b" }}
-            >
-              {stats.cancelledBookings || 0}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: "32px" }}>
-        <h2
-          style={{
-            fontSize: "20px",
-            fontWeight: "700",
-            marginBottom: "16px",
-            color: "#111827",
-          }}
-        >
-          🏟️ Trạng Thái Sân Bóng
-        </h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(3, 1fr)",
-            gap: "16px",
-          }}
-        >
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "12px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "48px", marginBottom: "8px" }}>✅</div>
-            <div
-              style={{
-                fontSize: "14px",
-                color: "#6b7280",
-                marginBottom: "4px",
-              }}
-            >
-              Đang hoạt động
-            </div>
-            <div
-              style={{ fontSize: "28px", fontWeight: "700", color: "#065f46" }}
-            >
-              {stats.activeFields || 0}
-            </div>
-          </div>
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "12px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "48px", marginBottom: "8px" }}>🔧</div>
-            <div
-              style={{
-                fontSize: "14px",
-                color: "#6b7280",
-                marginBottom: "4px",
-              }}
-            >
-              Đang bảo trì
-            </div>
-            <div
-              style={{ fontSize: "28px", fontWeight: "700", color: "#92400e" }}
-            >
-              {stats.maintenanceFields || 0}
-            </div>
-          </div>
-          <div
-            style={{
-              background: "white",
-              padding: "20px",
-              borderRadius: "12px",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-              textAlign: "center",
-            }}
-          >
-            <div style={{ fontSize: "48px", marginBottom: "8px" }}>❌</div>
-            <div
-              style={{
-                fontSize: "14px",
-                color: "#6b7280",
-                marginBottom: "4px",
-              }}
-            >
-              Không hoạt động
-            </div>
-            <div
-              style={{ fontSize: "28px", fontWeight: "700", color: "#6b7280" }}
-            >
-              {stats.inactiveFields || 0}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{ marginBottom: "32px" }}>
-        <h2
-          style={{
-            fontSize: "20px",
-            fontWeight: "700",
-            marginBottom: "16px",
-            color: "#111827",
-          }}
-        >
-          👥 Phân Tích Người Dùng
-        </h2>
-        <div
-          style={{
-            background: "white",
-            padding: "24px",
-            borderRadius: "12px",
-            boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
-          }}
-        >
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-around",
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                textAlign: "center",
-                flex: 1,
-                borderRight: "1px solid #e5e7eb",
-                padding: "16px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  marginBottom: "8px",
-                }}
-              >
-                Người dùng
-              </div>
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: "700",
-                  color: "#3b82f6",
-                }}
-              >
-                {stats.regularUsers || 0}
-              </div>
-              <div
-                style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}
-              >
-                Users
-              </div>
-            </div>
-            <div
-              style={{
-                textAlign: "center",
-                flex: 1,
-                borderRight: "1px solid #e5e7eb",
-                padding: "16px",
-              }}
-            >
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  marginBottom: "8px",
-                }}
-              >
-                Quản lý
-              </div>
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: "700",
-                  color: "#10b981",
-                }}
-              >
-                {stats.totalManagers || 0}
-              </div>
-              <div
-                style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}
-              >
-                Managers
-              </div>
-            </div>
-            <div style={{ textAlign: "center", flex: 1, padding: "16px" }}>
-              <div
-                style={{
-                  fontSize: "14px",
-                  color: "#6b7280",
-                  marginBottom: "8px",
-                }}
-              >
-                Quản trị
-              </div>
-              <div
-                style={{
-                  fontSize: "32px",
-                  fontWeight: "700",
-                  color: "#ef4444",
-                }}
-              >
-                {stats.totalAdmins || 0}
-              </div>
-              <div
-                style={{ fontSize: "12px", color: "#9ca3af", marginTop: "4px" }}
-              >
-                Admins
-              </div>
+              <div style={{ fontSize: "12px", marginTop: "4px" }}>VNĐ</div>
             </div>
           </div>
         </div>
