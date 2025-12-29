@@ -110,11 +110,14 @@ export const createReview = async (req, res) => {
     // Insert review
     const imagesJson = images && images.length > 0 ? JSON.stringify(images) : null;
     
-    await sequelize.query(
+    const [insertResult] = await sequelize.query(
       `INSERT INTO reviews (field_id, customer_id, rating, comment, images) 
-       VALUES (?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?)
+       RETURNING review_id`,
       { replacements: [field_id, customer_id, rating, comment, imagesJson] }
     );
+
+    const reviewId = insertResult[0]?.review_id;
 
     // Fetch inserted review
     const [rows] = await sequelize.query(
@@ -129,8 +132,9 @@ export const createReview = async (req, res) => {
         p.person_name as customer_name
       FROM reviews r
       LEFT JOIN person p ON r.customer_id = p.person_id
-      WHERE r.review_id = LAST_INSERT_ID()
-      LIMIT 1`
+      WHERE r.review_id = ?
+      LIMIT 1`,
+      { replacements: [reviewId] }
     );
 
     const review = rows?.[0] ?? null;
