@@ -1,46 +1,46 @@
-import "./config/dotenv.js";
-import db from "./config/db.js";
+﻿import "./config/dotenv.js";
+import "./config/database.js"; // Initialize database connection
 import express from "express";
 import morgan from "morgan";
 import cors from "cors";
+import path from "path";
+import { fileURLToPath } from 'url';
 
-// manager
-import managerFieldRoutes from "./routes/manager/fieldRoutes.js";
-import managerBookingRoutes from "./routes/manager/bookingRoutes.js";
-import managerPaymentRoutes from "./routes/manager/paymentRoutes.js";
-
-// admin
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import adminRoutes from "./routes/admin/adminRoutes.js";
-
-// user
+import managerRoutes from "./routes/manager/managerRoutes.js";
 import userRoutes from "./routes/user/userRoutes.js";
 import authRoutes from "./routes/user/authRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
+import aiRoutes from "./routes/aiRoutes.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(morgan("dev"));
 
-// Manager routes
-app.use("/api/manager/fields", managerFieldRoutes);
-app.use("/api/manager/bookings", managerBookingRoutes);
-app.use("/api/manager/payments", managerPaymentRoutes);
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
-// Admin routes
 app.use("/api/admin", adminRoutes);
-
-// User routes
+app.use("/api/manager", managerRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/ai", aiRoutes);
 
-// Check server
-app.get("/", (req, res) => {
-  res.json({ status: "Football Backend Running!" });
-});
-
-// Test kết nối Database
-db.getConnection()
-  .then(() => console.log("MySQL connected successfully!"))
-  .catch((err) => console.error("MySQL connection error:", err));
+app.get("/", (_, res) => res.json({ 
+  name: "football-management-backend",
+  version: "0.1.0",
+  status: "running",
+  endpoints: {
+    auth: "/api/auth",
+    user: "/api/user",
+    admin: "/api/admin",
+    manager: "/api/manager"
+  }
+}));
 
 export default app;

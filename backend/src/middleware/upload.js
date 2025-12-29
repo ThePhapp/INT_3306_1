@@ -1,45 +1,62 @@
-import multer from "multer";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs";
+import multer from 'multer';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Đảm bảo thư mục uploads tồn tại
-const uploadPath = path.join(__dirname, "../../uploads/fields");
-if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath);
+// Ensure upload directory exists
+const uploadDir = path.join(__dirname, '../../public/uploads/reviews');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
+// Configure storage
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadPath);
+  destination: function (req, file, cb) {
+    cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `field_${Date.now()}${ext}`);
-  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'review-' + uniqueSuffix + path.extname(file.originalname));
+  }
 });
 
-const allowedMimeTypes = [
-  "image/jpeg",
-  "image/png",
-  "image/jpg",
-  "image/webp",
-  "image/gif",
-  "image/bmp",
-];
-
+// File filter
 const fileFilter = (req, file, cb) => {
-  console.log("=== FILE INFO ===");
-  console.log("originalname:", file.originalname);
-  console.log("mimetype:", file.mimetype);
+  const allowedTypes = /jpeg|jpg|png|gif|webp/;
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  const mimetype = allowedTypes.test(file.mimetype);
 
-  if (!allowedMimeTypes.includes(file.mimetype)) {
-    return cb(new Error("Invalid image type"));
+  if (mimetype && extname) {
+    return cb(null, true);
+  } else {
+    cb(new Error('Only image files are allowed!'));
   }
-  cb(null, true);
 };
 
-export const uploadSingle = multer({ storage, fileFilter }).single("image");
+// Create multer upload instance
+export const uploadReviewImages = multer({
+  storage: storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB max file size
+  },
+  fileFilter: fileFilter
+}).array('images', 5); // Max 5 images
+
+// Middleware to handle multer errors
+export const handleUploadErrors = (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(400).json({ message: 'File size too large. Max 5MB per file.' });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ message: 'Too many files. Max 5 images.' });
+    }
+    return res.status(400).json({ message: err.message });
+  } else if (err) {
+    return res.status(400).json({ message: err.message });
+  }
+  next();
+};

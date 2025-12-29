@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fieldRoutes from "./routes/manager/fieldRoutes.js";
 
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT || 5000;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,5 +18,7 @@ app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/api/manager/fields", fieldRoutes);
 
 app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📝 API Documentation: http://localhost:${PORT}`);
+  console.log(`🔐 Auth endpoints: http://localhost:${PORT}/api/auth`);
 });

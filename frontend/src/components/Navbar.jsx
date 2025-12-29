@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { authAPI } from '../services/api'
 import './Navbar.css'
 
 export default function Navbar() {
@@ -8,17 +9,35 @@ export default function Navbar() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    // Kiểm tra user đã đăng nhập chưa
-    const storedUser = localStorage.getItem('user')
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
+    const checkAuth = () => {
+      const storedUser = localStorage.getItem('user')
+      const token = localStorage.getItem('token')
+      
+      if (storedUser && token) {
+        setUser(JSON.parse(storedUser))
+      } else {
+        setUser(null)
+      }
+    }
+    
+    checkAuth()
+    
+    window.addEventListener('storage', checkAuth)
+    
+    return () => {
+      window.removeEventListener('storage', checkAuth)
     }
   }, [])
 
-  const handleLogout = () => {
-    localStorage.removeItem('user')
+  const handleLogout = async () => {
+    try {
+      await authAPI.logout()
+    } catch (err) {
+      console.error('Logout error:', err)
+    }
     setUser(null)
-    navigate('/')
+    window.dispatchEvent(new Event('userUpdated'));
+    window.location.href = '/user/login'
   }
 
   return (
@@ -31,10 +50,9 @@ export default function Navbar() {
         <ul className={`navbar-menu ${isMenuOpen ? 'active' : ''}`}>
           <li><Link to="/">Trang chủ</Link></li>
           <li><Link to="/user/fields">Danh sách sân bãi</Link></li>
-          <li><Link to="/user/booking">Đặt lịch</Link></li>
-          <li><Link to="/user/bookings">Chính sách</Link></li>
-          <li><Link to="/user/review">Đánh giá</Link></li>
-          <li><Link to="/user/support">Liên hệ</Link></li>
+          {user && <li><Link to="/user/booking-history">Lịch sử đặt sân</Link></li>}
+          <li><Link to="/user/policy">Chính sách</Link></li>
+          <li><Link to="/user/contact">Liên hệ</Link></li>
         </ul>
 
         <div className="navbar-actions">

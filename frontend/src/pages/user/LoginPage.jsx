@@ -1,14 +1,18 @@
 import React, { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { authAPI } from '../../services/api'
+import { showSuccess, showError } from '../../components/Toast'
+import ToastContainer from '../../components/Toast'
 import './LoginPage.css'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
-    email: '',
+    username: '',
     password: ''
   })
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const handleChange = (e) => {
     setFormData({
@@ -17,31 +21,52 @@ export default function LoginPage() {
     })
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
+    setLoading(true)
 
-    // Demo validation
-    if (!formData.email || !formData.password) {
+    // Validation
+    if (!formData.username || !formData.password) {
       setError('Vui lòng điền đầy đủ thông tin')
+      setLoading(false)
       return
     }
 
-    // Demo login - sẽ thay bằng API call sau
-    console.log('Login data:', formData)
-    
-    // Giả lập đăng nhập thành công
-    localStorage.setItem('user', JSON.stringify({
-      email: formData.email,
-      name: 'Người dùng demo'
-    }))
-    
-    alert('Đăng nhập thành công!')
-    navigate('/user')
+    try {
+      const response = await authAPI.login(formData)
+      
+      if (response.success) {
+        const user = response.data.user
+        
+        // Dispatch custom event to update RoleSwitcher
+        window.dispatchEvent(new Event('userUpdated'));
+        
+        // Show success toast based on role
+        if (user.role === 'admin') {
+          showSuccess(`🎉 Chào mừng Admin ${user.username}! Đăng nhập thành công`)
+          navigate('/admin/dashboard')
+        } else if (user.role === 'manager') {
+          showSuccess(`👔 Chào mừng Manager ${user.username}! Đăng nhập thành công`)
+          navigate('/manager/bookings')
+        } else {
+          showSuccess(`👋 Xin chào ${user.username}! Đăng nhập thành công`)
+          navigate('/user')
+        }
+      } else {
+        showError(response.message || 'Đăng nhập thất bại')
+      }
+    } catch (err) {
+      console.error('Login error:', err)
+      showError(err.message || 'Có lỗi xảy ra khi đăng nhập')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
     <div className="auth-page">
+      <ToastContainer />
       <div className="auth-container">
         <div className="auth-card">
           <div className="auth-header">
@@ -53,15 +78,16 @@ export default function LoginPage() {
 
           <form onSubmit={handleSubmit} className="auth-form">
             <div className="form-group">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="username">Username hoặc Email</label>
               <input
-                id="email"
-                type="email"
-                name="email"
-                value={formData.email}
+                id="username"
+                type="text"
+                name="username"
+                value={formData.username}
                 onChange={handleChange}
-                placeholder="Nhập email của bạn"
+                placeholder="Nhập username hoặc email"
                 required
+                disabled={loading}
               />
             </div>
 
@@ -75,21 +101,22 @@ export default function LoginPage() {
                 onChange={handleChange}
                 placeholder="Nhập mật khẩu"
                 required
+                disabled={loading}
               />
             </div>
 
             <div className="form-options">
               <label className="remember-me">
-                <input type="checkbox" />
+                <input type="checkbox" disabled={loading} />
                 <span>Ghi nhớ đăng nhập</span>
               </label>
-              <Link to="/forgot-password" className="forgot-link">
+              <Link to="/user/forgot-password" className="forgot-link">
                 Quên mật khẩu?
               </Link>
             </div>
 
-            <button type="submit" className="auth-submit-btn">
-              Đăng nhập
+            <button type="submit" className="auth-submit-btn" disabled={loading}>
+              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
             </button>
           </form>
 
@@ -104,10 +131,10 @@ export default function LoginPage() {
           </div>
 
           <div className="social-login">
-            <button className="social-btn google">
+            <button className="social-btn google" disabled={loading}>
               <span>🔍</span> Google
             </button>
-            <button className="social-btn facebook">
+            <button className="social-btn facebook" disabled={loading}>
               <span>f</span> Facebook
             </button>
           </div>
