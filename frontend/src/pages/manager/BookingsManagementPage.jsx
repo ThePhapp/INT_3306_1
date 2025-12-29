@@ -111,28 +111,28 @@ export default function ManagerBookingsPage() {
       key: 'booking_id',
       label: 'ID',
       sortable: true,
-      render: (booking) => (
-        <span className="badge badge-primary">#{booking?.booking_id || 'N/A'}</span>
+      render: (value) => (
+        <span className="badge badge-primary">#{value || 'N/A'}</span>
       )
     },
     {
       key: 'field_name',
       label: 'Sân',
       sortable: true,
-      render: (booking) => (
+      render: (value, row) => (
         <div className="field-info">
           <div className="field-name">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <rect x="3" y="3" width="18" height="18" rx="2" />
             </svg>
-            {booking?.field_name || 'N/A'}
+            {value || 'N/A'}
           </div>
           <div className="field-location">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
               <circle cx="12" cy="10" r="3" />
             </svg>
-            {booking?.location || 'N/A'}
+            {row?.location || 'N/A'}
           </div>
         </div>
       )
@@ -141,18 +141,18 @@ export default function ManagerBookingsPage() {
       key: 'customer_name',
       label: 'Khách hàng',
       sortable: true,
-      render: (booking) => (
+      render: (value, row) => (
         <div className="customer-info">
           <div className="avatar">
-            {booking?.customer_name?.charAt(0).toUpperCase() || '?'}
+            {(typeof value === 'string' && value.charAt(0).toUpperCase()) || '?'}
           </div>
           <div className="customer-details">
-            <div className="customer-name">{booking?.customer_name || 'N/A'}</div>
+            <div className="customer-name">{value || 'N/A'}</div>
             <div className="customer-contact">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
               </svg>
-              {booking?.customer_phone || 'N/A'}
+              {row?.customer_phone || 'N/A'}
             </div>
           </div>
         </div>
@@ -162,7 +162,7 @@ export default function ManagerBookingsPage() {
       key: 'start_time',
       label: 'Thời gian',
       sortable: true,
-      render: (booking) => (
+      render: (value, row) => (
         <div className="time-info">
           <div className="time-row">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2">
@@ -170,7 +170,7 @@ export default function ManagerBookingsPage() {
               <polyline points="12 6 12 12 16 14" />
             </svg>
             <span className="time-label">Bắt đầu:</span>
-            <span className="time-value">{booking?.start_time ? formatDateTime(booking.start_time) : 'N/A'}</span>
+            <span className="time-value">{value ? formatDateTime(value) : 'N/A'}</span>
           </div>
           <div className="time-row">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2">
@@ -178,7 +178,7 @@ export default function ManagerBookingsPage() {
               <polyline points="12 6 12 12 16 14" />
             </svg>
             <span className="time-label">Kết thúc:</span>
-            <span className="time-value">{booking?.end_time ? formatDateTime(booking.end_time) : 'N/A'}</span>
+            <span className="time-value">{row?.end_time ? formatDateTime(row.end_time) : 'N/A'}</span>
           </div>
         </div>
       )
@@ -187,9 +187,9 @@ export default function ManagerBookingsPage() {
       key: 'price',
       label: 'Giá',
       sortable: true,
-      render: (booking) => (
+      render: (value) => (
         <div className="price-info">
-          <span className="price-value">{(booking?.price || 0).toLocaleString('vi-VN')}</span>
+          <span className="price-value">{(value || 0).toLocaleString('vi-VN')}</span>
           <span className="price-currency">VNĐ</span>
         </div>
       )
@@ -198,7 +198,7 @@ export default function ManagerBookingsPage() {
       key: 'status',
       label: 'Trạng thái',
       sortable: true,
-      render: (booking) => {
+      render: (value) => {
         const statusConfig = {
           pending: { text: 'Chờ duyệt', class: 'badge-warning', icon: '⏳' },
           confirmed: { text: 'Đã duyệt', class: 'badge-info', icon: '✓' },
@@ -206,7 +206,7 @@ export default function ManagerBookingsPage() {
           cancelled: { text: 'Đã hủy', class: 'badge-cancelled', icon: '✗' },
           rejected: { text: 'Từ chối', class: 'badge-danger', icon: '✗' }
         };
-        const config = statusConfig[booking?.status] || { text: booking?.status || 'N/A', class: '', icon: '' };
+        const config = statusConfig[value] || { text: value || 'N/A', class: '', icon: '' };
         return (
           <span className={`badge ${config.class}`}>
             {config.icon} {config.text}
@@ -217,14 +217,14 @@ export default function ManagerBookingsPage() {
     {
       key: 'actions',
       label: 'Thao tác',
-      render: (booking) => (
+      render: (value, row) => (
         <div className="action-buttons">
-          {booking?.status === 'pending' && (
+          {row?.status === 'pending' && (
             <>
               <ConfirmDialog
                 title="Xác nhận duyệt"
                 message="Bạn có chắc chắn muốn duyệt đơn đặt sân này?"
-                onConfirm={() => handleApprove(booking?.booking_id)}
+                onConfirm={() => handleApprove(row?.booking_id)}
                 confirmText="Duyệt"
                 cancelText="Hủy"
               >
@@ -236,7 +236,7 @@ export default function ManagerBookingsPage() {
                 </button>
               </ConfirmDialog>
               <button 
-                onClick={() => handleReject(booking)}
+                onClick={() => handleReject(row)}
                 className="btn-action btn-reject"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -247,12 +247,12 @@ export default function ManagerBookingsPage() {
               </button>
             </>
           )}
-          {booking?.status === 'confirmed' && (
+          {row?.status === 'confirmed' && (
             <>
               <ConfirmDialog
                 title="Xác nhận hoàn thành"
                 message="Đánh dấu đơn đặt sân này là đã hoàn thành?"
-                onConfirm={() => handleComplete(booking?.booking_id)}
+                onConfirm={() => handleComplete(row?.booking_id)}
                 confirmText="Hoàn thành"
                 cancelText="Hủy"
               >
@@ -267,7 +267,7 @@ export default function ManagerBookingsPage() {
               <ConfirmDialog
                 title="Xác nhận hủy"
                 message="Bạn có chắc chắn muốn hủy đơn đặt sân này?"
-                onConfirm={() => handleCancel(booking?.booking_id)}
+                onConfirm={() => handleCancel(row?.booking_id)}
                 confirmText="Hủy đơn"
                 cancelText="Không"
               >
@@ -282,7 +282,7 @@ export default function ManagerBookingsPage() {
               </ConfirmDialog>
             </>
           )}
-          {['completed', 'cancelled', 'rejected'].includes(booking?.status) && (
+          {['completed', 'cancelled', 'rejected'].includes(row?.status) && (
             <span className="no-action">—</span>
           )}
         </div>

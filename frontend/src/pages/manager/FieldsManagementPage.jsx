@@ -123,20 +123,20 @@ export default function ManagerFieldsPage() {
       key: 'field_id',
       label: 'ID',
       sortable: true,
-      render: (field) => (
-        <span className="badge badge-primary">#{field?.field_id || 'N/A'}</span>
+      render: (value) => (
+        <span className="badge badge-primary">#{value || 'N/A'}</span>
       )
     },
     {
       key: 'field_name',
       label: 'Tên sân',
       sortable: true,
-      render: (field) => (
+      render: (value) => (
         <div className="field-name-cell">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <rect x="3" y="3" width="18" height="18" rx="2" />
           </svg>
-          <span>{field?.field_name || 'N/A'}</span>
+          <span>{value || 'N/A'}</span>
         </div>
       )
     },
@@ -144,13 +144,13 @@ export default function ManagerFieldsPage() {
       key: 'location',
       label: 'Địa điểm',
       sortable: true,
-      render: (field) => (
+      render: (value) => (
         <div className="location-cell">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
             <circle cx="12" cy="10" r="3" />
           </svg>
-          {field?.location || 'Chưa cập nhật'}
+          {value || 'Chưa cập nhật'}
         </div>
       )
     },
@@ -158,11 +158,11 @@ export default function ManagerFieldsPage() {
       key: 'rental_price',
       label: 'Giá thuê',
       sortable: true,
-      render: (field) => (
+      render: (value) => (
         <div className="price-cell">
-          {field?.rental_price ? (
+          {value ? (
             <>
-              <span className="price-value">{field.rental_price.toLocaleString('vi-VN')}</span>
+              <span className="price-value">{value.toLocaleString('vi-VN')}</span>
               <span className="price-unit">VNĐ/giờ</span>
             </>
           ) : (
@@ -175,8 +175,8 @@ export default function ManagerFieldsPage() {
       key: 'status',
       label: 'Trạng thái',
       sortable: true,
-      render: (field) => (
-        field?.status === 'active' ? (
+      render: (value) => (
+        value === 'active' ? (
           <span className="badge badge-success">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
               <polyline points="20 6 9 17 4 12" />
@@ -197,10 +197,10 @@ export default function ManagerFieldsPage() {
     {
       key: 'actions',
       label: 'Thao tác',
-      render: (field) => (
+      render: (value, row) => (
         <div className="action-buttons">
           <button 
-            onClick={() => handleViewStats(field)}
+            onClick={() => handleViewStats(row)}
             className="btn-action btn-stats"
             title="Xem thống kê"
           >
@@ -212,7 +212,7 @@ export default function ManagerFieldsPage() {
             Thống kê
           </button>
           <button 
-            onClick={() => handleEditField(field)}
+            onClick={() => handleEditField(row)}
             className="btn-action btn-edit"
             title="Chỉnh sửa"
           >
@@ -223,19 +223,19 @@ export default function ManagerFieldsPage() {
             Sửa
           </button>
           <ConfirmDialog
-            title={field.status === 'active' ? 'Tạm ngưng sân' : 'Kích hoạt sân'}
-            message={field.status === 'active' 
-              ? `Bạn có chắc muốn tạm ngưng sân "${field.field_name}"?` 
-              : `Bạn có chắc muốn kích hoạt sân "${field.field_name}"?`}
-            onConfirm={() => handleToggleStatus(field.field_id, field.status)}
-            confirmText={field.status === 'active' ? 'Tạm ngưng' : 'Kích hoạt'}
+            title={row?.status === 'active' ? 'Tạm ngưng sân' : 'Kích hoạt sân'}
+            message={row?.status === 'active' 
+              ? `Bạn có chắc muốn tạm ngưng sân "${row?.field_name}"?` 
+              : `Bạn có chắc muốn kích hoạt sân "${row?.field_name}"?`}
+            onConfirm={() => handleToggleStatus(row?.field_id, row?.status)}
+            confirmText={row?.status === 'active' ? 'Tạm ngưng' : 'Kích hoạt'}
             cancelText="Hủy"
           >
             <button 
-              className={`btn-action ${field.status === 'active' ? 'btn-deactivate' : 'btn-activate'}`}
-              title={field.status === 'active' ? 'Tạm ngưng' : 'Kích hoạt'}
+              className={`btn-action ${row?.status === 'active' ? 'btn-deactivate' : 'btn-activate'}`}
+              title={row?.status === 'active' ? 'Tạm ngưng' : 'Kích hoạt'}
             >
-              {field.status === 'active' ? (
+              {row?.status === 'active' ? (
                 <>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <rect x="6" y="4" width="4" height="16" />
@@ -255,8 +255,8 @@ export default function ManagerFieldsPage() {
           </ConfirmDialog>
           <ConfirmDialog
             title="Xóa sân"
-            message={`Bạn có chắc chắn muốn xóa sân "${field.field_name}"? Hành động này không thể hoàn tác.`}
-            onConfirm={() => handleDeleteField(field)}
+            message={`Bạn có chắc chắn muốn xóa sân "${row?.field_name}"? Hành động này không thể hoàn tác.`}
+            onConfirm={() => handleDeleteField(row)}
             confirmText="Xóa"
             cancelText="Hủy"
           >
