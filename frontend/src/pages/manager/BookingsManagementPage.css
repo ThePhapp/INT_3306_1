@@ -248,7 +248,7 @@
 }
 
 .btn-action::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 50%;
   left: 50%;
@@ -452,7 +452,6 @@
 .btn-cancel-modal:hover {
   background: #e2e8f0;
   color: #475569;
-}
 }
 
 .bookings-table {
